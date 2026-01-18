@@ -1,0 +1,5 @@
+{
+  "name": "Calculateur de Moyenne Universitaire",
+  "description": "Un calculateur de moyenne complet pour les licences universitaires (LAM, LTIC, LISI, LSIM, CPI) permettant aux étudiants de saisir leurs notes pour des matières et semestres spécifiques afin de calculer leurs moyennes pondérées.",
+  "requestFramePermissions": []
+}
