@@ -7,13 +7,9 @@ const App: React.FC = () => {
   const [selectedMajor, setSelectedMajor] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedSemester, setSelectedSemester] = useState<string>('');
-  
-  // Local state for subjects to allow editing (Coef, Inputs, etc.)
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [marks, setMarks] = useState<GradeMap>({});
   const [showResults, setShowResults] = useState(false);
-
-  // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
@@ -45,8 +41,7 @@ const App: React.FC = () => {
   const majors = Object.keys(DATA);
   const years = selectedMajor ? Object.keys(DATA[selectedMajor] || {}) : [];
   const semesters = (selectedMajor && selectedYear) ? Object.keys(DATA[selectedMajor][selectedYear] || {}) : [];
-
-  // Initialize subjects when selection changes
+  
   useEffect(() => {
     if (selectedMajor && selectedYear && selectedSemester) {
       const defaultSubjects = DATA[selectedMajor][selectedYear][selectedSemester]?.subjects || [];
@@ -59,7 +54,7 @@ const App: React.FC = () => {
     }
   }, [selectedMajor, selectedYear, selectedSemester]);
 
-  // Handle updates from SubjectRow (changing coef, adding/removing inputs)
+  // (nbadel coef, nzid/nfas5 inputs)
   const handleSubjectUpdate = (updatedSubject: Subject) => {
     setSubjects(prev => prev.map(sub => sub.id === updatedSubject.id ? updatedSubject : sub));
   };
@@ -104,13 +99,13 @@ const App: React.FC = () => {
   }, []);
 
   /**
-   * Dynamic Formula Logic:
-   * 1. If 'Examen' exists: 
-   *    Formula = 0.7 * Examen + 0.3 * Average(All Other Inputs)
-   *    (This covers Examen+DS, Examen+TP, Examen+DS+TP cases)
-   * 2. If 'Examen' does NOT exist:
-   *    Formula = Average(All Inputs)
-   *    (This covers DS+TP, or 2 DS, etc.)
+   * formule hya :
+   * 1. si 'Examen' mawjoud: 
+   *    formule = 0.7 * Examen + 0.3 * avg(All Other Inputs)
+   *    (Examen+DS, Examen+TP, Examen+DS+TP)
+   * 2. si 'Examen' mahouch mawjoud:
+   *    formule = avg(All Inputs)
+   *    (DS+TP, or 2 DS, etc.)
    */
   const calculateSubjectAverage = (subject: Subject): number => {
     const subjectMarks = marks[subject.id] || {};
