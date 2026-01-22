@@ -13,6 +13,34 @@ const App: React.FC = () => {
   const [marks, setMarks] = useState<GradeMap>({});
   const [showResults, setShowResults] = useState(false);
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult: any) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+        }
+        setDeferredPrompt(null);
+      });
+    }
+  };
+
   // Derived state options
   const majors = Object.keys(DATA);
   const years = selectedMajor ? Object.keys(DATA[selectedMajor] || {}) : [];
@@ -150,43 +178,91 @@ const App: React.FC = () => {
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-xl supports-[backdrop-filter]:bg-slate-900/60 transition-all duration-300">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-             {selectedMajor && (
+        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+             <div className="flex items-center gap-4">
+                {selectedMajor && (
+                  <button 
+                    onClick={handleGoHome}
+                    className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700 hover:border-blue-500/50 group shrink-0"
+                    title="Retour à l'accueil"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                  </button>
+                )}
+                
+                {/* University Branding */}
+                <div className="flex items-center gap-3">
+                   {/* Logo Container - Using standard ISIMG logo URL or fallback */}
+                   <div className="relative bg-white p-1.5 rounded-xl shadow-lg shadow-blue-500/10 overflow-hidden shrink-0">
+                      <img 
+                        src="https://isimg.rnu.tn/sites/default/files/logo_0.png" 
+                        onError={(e) => {
+                           // Handle broken image by showing fallback text
+                           e.currentTarget.style.display = 'none'; 
+                           const fallback = document.getElementById('logo-fallback');
+                           if(fallback) fallback.classList.remove('hidden');
+                           e.currentTarget.parentElement?.classList.remove('bg-white');
+                           e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-blue-600', 'to-purple-700');
+                        }}
+                        alt="ISIMG" 
+                        className="h-10 w-auto object-contain" 
+                      />
+                      {/* Fallback if image fails to load */}
+                      <div id="logo-fallback" className="hidden h-10 w-10 flex items-center justify-center">
+                         <span className="font-bold text-white text-[10px]">ISIMG</span>
+                      </div>
+                   </div>
+
+                   {/* Title Text */}
+                   <div className="flex flex-col justify-center">
+                      <h1 className="hidden md:block text-sm font-bold text-white leading-tight">
+                        Institut Supérieur d'Informatique <br/> et de Multimédia de Gabès
+                      </h1>
+                      <h1 className="md:hidden text-lg font-bold text-white leading-tight">
+                        ISIM Gabès
+                      </h1>
+                      <p className="text-slate-400 text-[10px] font-medium tracking-wide">Calculateur de Moyenne</p>
+                   </div>
+                </div>
+             </div>
+
+             {/* PWA Install Button (Mobile Visible) */}
+             {deferredPrompt && (
                <button 
-                 onClick={handleGoHome}
-                 className="mr-2 p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700 hover:border-blue-500/50 group"
-                 title="Retour à l'accueil"
+                 onClick={handleInstallClick}
+                 className="md:hidden ml-auto bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg shadow-blue-500/20 animate-pulse whitespace-nowrap"
                >
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                 </svg>
+                 Installer
                </button>
              )}
-             
-             <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg shadow-blue-500/20">
-               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-               </svg>
-             </div>
-             <div>
-                <h1 className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                  Calculateur de Moyenne
-                </h1>
-                <p className="text-slate-400 text-xs font-medium">Gestionnaire de Notes Universitaires</p>
-             </div>
           </div>
           
-          {showResults && (
-            <div className={`w-full sm:w-auto text-center px-6 py-2 rounded-xl font-bold text-xl shadow-lg border backdrop-blur-md transition-all duration-500 animate-in slide-in-from-top-4 ${
-                finalAverage >= 10 
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 shadow-emerald-500/10' 
-                : 'bg-rose-500/20 text-rose-300 border-rose-500/30 shadow-rose-500/10'
-            }`}>
-              <span className="text-sm font-normal text-slate-300 mr-2">Moyenne Générale:</span>
-              {finalAverage.toFixed(2)} / 20
-            </div>
-          )}
+          <div className="flex items-center gap-4 w-full md:w-auto justify-center md:justify-end">
+             {/* PWA Install Button (Desktop Visible) */}
+             {deferredPrompt && (
+               <button 
+                 onClick={handleInstallClick}
+                 className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-semibold border border-slate-700 transition-all hover:border-blue-500/30"
+               >
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                 Installer l'App
+               </button>
+             )}
+
+             {showResults && (
+                <div className={`flex items-center px-5 py-2 rounded-xl font-bold text-xl shadow-lg border backdrop-blur-md transition-all duration-500 animate-in slide-in-from-top-4 ${
+                    finalAverage >= 10 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' 
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10'
+                }`}>
+                  <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 mr-3">Moyenne</span>
+                  {finalAverage.toFixed(2)}
+                </div>
+             )}
+          </div>
         </div>
       </header>
 
@@ -308,7 +384,7 @@ const App: React.FC = () => {
 
       {/* Calculate Button Sticky Footer */}
       {subjects.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-slate-900/80 backdrop-blur-xl border-t border-slate-800 p-4 shadow-2xl z-40 supports-[backdrop-filter]:bg-slate-900/60">
+        <div className="fixed bottom-0 left-0 right-0 bg-slate-900/80 backdrop-blur-xl border-t border-slate-800 p-4 shadow-2xl z-40 supports-[backdrop-filter]:bg-slate-900/60 pb-8 sm:pb-4">
           <div className="max-w-5xl mx-auto flex justify-between items-center">
              <div className="hidden md:flex flex-col">
                <span className="text-slate-300 text-sm font-medium">Prêt à calculer ?</span>
@@ -326,7 +402,7 @@ const App: React.FC = () => {
       )}
 
       {/* Copyright Footer */}
-      <footer className="text-center py-6 text-slate-600 text-xs relative z-0 mt-8">
+      <footer className="text-center py-6 text-slate-600 text-xs relative z-0 mt-8 mb-16 sm:mb-0">
         <p>&copy; {new Date().getFullYear()} Brimo. Tous droits réservés.</p>
       </footer>
     </div>
