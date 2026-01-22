@@ -205,14 +205,13 @@ const App: React.FC = () => {
                            const fallback = document.getElementById('logo-fallback');
                            if(fallback) fallback.classList.remove('hidden');
                            e.currentTarget.parentElement?.classList.remove('bg-white');
-                           e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-blue-600', 'to-purple-700');
                         }}
                         alt="ISIMG" 
                         className="h-10 w-auto object-contain" 
                       />
                       {/* Fallback if image fails to load */}
                       <div id="logo-fallback" className="hidden h-10 w-10 flex items-center justify-center">
-                         <span className="font-bold text-white text-[10px]">ISIMG</span>
+                         <img src="isimglogo.png" alt="ISIMG Logo" className="h-10 w-auto object-contain" />
                       </div>
                    </div>
 
