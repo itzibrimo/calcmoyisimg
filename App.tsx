@@ -7,9 +7,13 @@ const App: React.FC = () => {
   const [selectedMajor, setSelectedMajor] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedSemester, setSelectedSemester] = useState<string>('');
+  
+  // Local state for subjects to allow editing (Coef, Inputs, etc.)
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [marks, setMarks] = useState<GradeMap>({});
   const [showResults, setShowResults] = useState(false);
+
+  // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
@@ -41,7 +45,8 @@ const App: React.FC = () => {
   const majors = Object.keys(DATA);
   const years = selectedMajor ? Object.keys(DATA[selectedMajor] || {}) : [];
   const semesters = (selectedMajor && selectedYear) ? Object.keys(DATA[selectedMajor][selectedYear] || {}) : [];
-  
+
+  // Initialize subjects when selection changes
   useEffect(() => {
     if (selectedMajor && selectedYear && selectedSemester) {
       const defaultSubjects = DATA[selectedMajor][selectedYear][selectedSemester]?.subjects || [];
@@ -54,7 +59,7 @@ const App: React.FC = () => {
     }
   }, [selectedMajor, selectedYear, selectedSemester]);
 
-  // (nbadel coef, nzid/nfas5 inputs)
+  // Handle updates from SubjectRow (changing coef, adding/removing inputs)
   const handleSubjectUpdate = (updatedSubject: Subject) => {
     setSubjects(prev => prev.map(sub => sub.id === updatedSubject.id ? updatedSubject : sub));
   };
@@ -99,13 +104,13 @@ const App: React.FC = () => {
   }, []);
 
   /**
-   * formule hya :
-   * 1. si 'Examen' mawjoud: 
-   *    formule = 0.7 * Examen + 0.3 * avg(All Other Inputs)
-   *    (Examen+DS, Examen+TP, Examen+DS+TP)
-   * 2. si 'Examen' mahouch mawjoud:
-   *    formule = avg(All Inputs)
-   *    (DS+TP, or 2 DS, etc.)
+   * Dynamic Formula Logic:
+   * 1. If 'Examen' exists: 
+   *    Formula = 0.7 * Examen + 0.3 * Average(All Other Inputs)
+   *    (This covers Examen+DS, Examen+TP, Examen+DS+TP cases)
+   * 2. If 'Examen' does NOT exist:
+   *    Formula = Average(All Inputs)
+   *    (This covers DS+TP, or 2 DS, etc.)
    */
   const calculateSubjectAverage = (subject: Subject): number => {
     const subjectMarks = marks[subject.id] || {};
@@ -190,26 +195,6 @@ const App: React.FC = () => {
                 
                 {/* University Branding */}
                 <div className="flex items-center gap-3">
-                   {/* Logo Container - Using standard ISIMG logo URL or fallback */}
-                   <div className="relative bg-white p-1.5 rounded-xl shadow-lg shadow-blue-500/10 overflow-hidden shrink-0">
-                      <img 
-                        src="https://isimg.rnu.tn/sites/default/files/logo_0.png" 
-                        onError={(e) => {
-                           // Handle broken image by showing fallback text
-                           e.currentTarget.style.display = 'none'; 
-                           const fallback = document.getElementById('logo-fallback');
-                           if(fallback) fallback.classList.remove('hidden');
-                           e.currentTarget.parentElement?.classList.remove('bg-white');
-                        }}
-                        alt="ISIMG" 
-                        className="h-10 w-auto object-contain" 
-                      />
-                      {/* Fallback if image fails to load */}
-                      <div id="logo-fallback" className="hidden h-10 w-10 flex items-center justify-center">
-                         <img src="isimglogo.png" alt="ISIMG Logo" className="h-10 w-auto object-contain" />
-                      </div>
-                   </div>
-
                    {/* Title Text */}
                    <div className="flex flex-col justify-center">
                       <h1 className="hidden md:block text-sm font-bold text-white leading-tight">
