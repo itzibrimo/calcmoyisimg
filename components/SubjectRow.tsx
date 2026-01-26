@@ -72,13 +72,17 @@ const SubjectRow: React.FC<SubjectRowProps> = ({ subject, marks, onMarkChange, o
         )}
 
         {calculatedAverage !== undefined && !isEditing && (
-          <span className={`ml-auto md:ml-2 text-sm font-bold px-3 py-1 rounded-full border shadow-sm backdrop-blur-md transition-all duration-500 ${
-            calculatedAverage >= 10 
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
-              : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-          }`}>
-            Moy: {calculatedAverage.toFixed(2)}
-          </span>
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 ml-auto">
+             <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700">
+                <span className={calculatedAverage < 10 ? 'text-rose-400' : 'text-emerald-400'}>{calculatedAverage.toFixed(2)}</span>
+                <span className="text-[10px] opacity-60">x</span>
+                <span className="text-slate-300">{subject.coef}</span>
+                <span className="text-[10px] opacity-60">=</span>
+                <span className={`font-bold ${calculatedAverage < 10 ? 'text-rose-300' : 'text-emerald-300'}`}>
+                    {(calculatedAverage * subject.coef).toFixed(2)} <span className="text-[10px] font-normal uppercase">Pts</span>
+                </span>
+             </div>
+          </div>
         )}
       </div>
 
