@@ -87,15 +87,19 @@ const App: React.FC = () => {
   };
 
   const handleMarkChange = useCallback((subjectId: string, inputLabel: string, value: string) => {
-    if (value === '') {
+    // Replace comma with dot for French keyboard support
+    const normalizedValue = value.replace(',', '.');
+    
+    if (normalizedValue === '') {
         setMarks(prev => ({
           ...prev,
-          [subjectId]: { ...prev[subjectId], [inputLabel]: value }
+          [subjectId]: { ...prev[subjectId], [inputLabel]: value } // keep original value for display
         }));
         return;
     }
-    const numericValue = parseFloat(value);
-    if ((!isNaN(numericValue) && numericValue >= 0 && numericValue <= 20) || value === '.') {
+    
+    const numericValue = parseFloat(normalizedValue);
+    if ((!isNaN(numericValue) && numericValue >= 0 && numericValue <= 20) || normalizedValue === '.') {
         setMarks(prev => ({
           ...prev,
           [subjectId]: { ...prev[subjectId], [inputLabel]: value }
@@ -107,10 +111,12 @@ const App: React.FC = () => {
    * Dynamic Formula Logic:
    * 1. If 'Examen' exists: 
    *    Formula = 0.7 * Examen + 0.3 * Average(All Other Inputs)
-   *    (This covers Examen+DS, Examen+TP, Examen+DS+TP cases)
+   * 
    * 2. If 'Examen' does NOT exist:
-   *    Formula = Average(All Inputs)
-   *    (This covers DS+TP, or 2 DS, etc.)
+   *    a. If 'DS1' and 'DS2' exist (and there's a 3rd component like Oral/TP):
+   *       Formula = 0.4 * DS1 + 0.4 * DS2 + 0.2 * Average(Others)
+   *    b. Otherwise:
+   *       Formula = Average(All Inputs)
    */
   const calculateSubjectAverage = (subject: Subject): number => {
     const subjectMarks = marks[subject.id] || {};
@@ -118,7 +124,8 @@ const App: React.FC = () => {
     const getVal = (label: string) => {
         const val = subjectMarks[label];
         if (!val || val.trim() === '') return 0;
-        const parsed = parseFloat(val);
+        // Handle comma for calculation
+        const parsed = parseFloat(val.replace(',', '.'));
         return isNaN(parsed) ? 0 : parsed;
     };
 
@@ -145,7 +152,26 @@ const App: React.FC = () => {
         // 70% Exam, 30% Continuous Assessment Average
         return (0.7 * examenScore) + (0.3 * othersAvg);
     } else {
-        // Simple Average if no Exam
+        // Check for specific formula: DS1 (40%), DS2 (40%), Oral/TP (20%)
+        const ds1Label = inputs.find(i => i.toUpperCase() === 'DS1');
+        const ds2Label = inputs.find(i => i.toUpperCase() === 'DS2');
+
+        if (ds1Label && ds2Label) {
+             const ds1Val = getVal(ds1Label);
+             const ds2Val = getVal(ds2Label);
+             
+             // Get others (Oral, TP, etc.)
+             const otherInputs = inputs.filter(i => i !== ds1Label && i !== ds2Label);
+             
+             if (otherInputs.length > 0) {
+                 const othersSum = otherInputs.reduce((acc, curr) => acc + getVal(curr), 0);
+                 const othersAvg = othersSum / otherInputs.length;
+                 // 40% DS1 + 40% DS2 + 20% Others (Oral/TP)
+                 return (0.4 * ds1Val) + (0.4 * ds2Val) + (0.2 * othersAvg);
+             }
+        }
+
+        // Simple Average if no specific pattern matched
         const total = inputs.reduce((acc, curr) => acc + getVal(curr), 0);
         return total / inputs.length;
     }
@@ -157,14 +183,20 @@ const App: React.FC = () => {
 
     subjects.forEach(sub => {
       const avg = calculateSubjectAverage(sub);
-      totalScore += avg * sub.coef;
-      totalCoef += sub.coef;
+      const coef = Number(sub.coef) || 0; // Ensure number
+      totalScore += avg * coef;
+      totalCoef += coef;
     });
 
-    return totalCoef === 0 ? 0 : totalScore / totalCoef;
+    return {
+      average: totalCoef === 0 ? 0 : totalScore / totalCoef,
+      totalScore,
+      totalCoef
+    };
   };
 
-  const finalAverage = calculateTotal();
+  const results = calculateTotal();
+  const finalAverage = results.average;
 
   return (
     <div className="min-h-screen bg-slate-900 pb-24 font-sans text-slate-100 selection:bg-blue-500/30 selection:text-blue-200">
@@ -232,13 +264,27 @@ const App: React.FC = () => {
              )}
 
              {showResults && (
-                <div className={`flex items-center px-5 py-2 rounded-xl font-bold text-xl shadow-lg border backdrop-blur-md transition-all duration-500 animate-in slide-in-from-top-4 ${
+                <div className={`flex flex-col md:flex-row items-end md:items-center px-4 py-2 rounded-xl border backdrop-blur-md transition-all duration-500 animate-in slide-in-from-top-4 ${
                     finalAverage >= 10 
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' 
-                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-lg shadow-emerald-500/10' 
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-lg shadow-rose-500/10'
                 }`}>
-                  <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 mr-3">Moyenne</span>
-                  {finalAverage.toFixed(2)}
+                  <div className="flex items-center gap-3 text-sm md:mr-4 border-b md:border-b-0 md:border-r border-white/10 pb-1 md:pb-0 md:pr-4 mb-1 md:mb-0">
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] uppercase text-slate-400 font-bold">Total Points</span>
+                        <span className="font-mono font-bold text-slate-200">{results.totalScore.toFixed(2)}</span>
+                      </div>
+                      <span className="text-slate-500 text-lg">/</span>
+                      <div className="flex flex-col items-start">
+                        <span className="text-[10px] uppercase text-slate-400 font-bold">Total Coef</span>
+                        <span className="font-mono font-bold text-slate-200">{results.totalCoef}</span>
+                      </div>
+                  </div>
+
+                  <div className="flex items-center">
+                      <span className="text-xs uppercase tracking-wider font-semibold opacity-70 mr-2">= Moyenne</span>
+                      <span className="text-2xl font-bold">{finalAverage.toFixed(2)}</span>
+                  </div>
                 </div>
              )}
           </div>
